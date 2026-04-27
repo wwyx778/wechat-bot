@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "node ./cli.js",
+    "dev": "node --watch ./cli.js",
     "format": "prettier --write ./src",
     "start": "node ./cli.js",
     "test": "node ./src/wechaty/testMessage.js",

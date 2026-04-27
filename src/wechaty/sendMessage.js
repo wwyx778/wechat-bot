@@ -15,7 +15,11 @@ const aliasWhiteList = env.ALIAS_WHITELIST ? env.ALIAS_WHITELIST.split(',') : []
 // 从环境变量中导入群聊白名单
 const roomWhiteList = env.ROOM_WHITELIST ? env.ROOM_WHITELIST.split(',') : []
 
+// 每次发送前会随机等待 1~3 秒
+const randomDelay = (min = 1000, max = 3000) => new Promise((resolve) => setTimeout(resolve, Math.floor(Math.random() * (max - min + 1)) + min))
+
 import { getServe } from './serve.js'
+import { appendDoubaoMemory } from '../doubao/index.js'
 
 /**
  * 默认消息发送
@@ -39,24 +43,39 @@ export async function defaultMessage(msg, bot, ServiceType = 'GPT') {
   const isAlias = aliasWhiteList.includes(remarkName) || aliasWhiteList.includes(name) // 发消息的人是否在联系人白名单内
   const isBotSelf = botName === `@${remarkName}` || botName === `@${name}` // 是否是机器人自己
   const isBotSelfDebug = content.trimStart().startsWith('你是谁') // 是否是机器人自己的调试消息
+  console.log('msg.mention(): ', await msg.mentionList())
   // TODO 你们可以根据自己的需求修改这里的逻辑
   if ((isBotSelf && !isBotSelfDebug) || !isText) return // 如果是机器人自己发送的消息或者消息类型不是文本则不处理
   try {
     // 区分群聊和私聊
     // 群聊消息去掉艾特主体后，匹配自动回复前缀
+    console.log('发消息的人是否在联系人白名单内 isAlias: ', isAlias)
+    console.log('是否在群聊白名单内并且艾特了机器人 isRoom: ', isRoom)
+    console.log('是否是群消息 room: ', room)
+    console.log('content: ', content)
+    console.log('autoReplyPrefix: ', autoReplyPrefix)
+    console.log('botName: ', botName)
     if (isRoom && room && content.replace(`${botName}`, '').trimStart().startsWith(`${autoReplyPrefix}`)) {
-      const question = (await msg.mentionText()) || content.replace(`${botName}`, '').replace(`${autoReplyPrefix}`, '') // 去掉艾特的消息主体
+      const question = (await msg.mentionText()) || content.replaceAll(`${botName}`, '').replaceAll(`${autoReplyPrefix}`, '') // 去掉艾特的消息主体
       console.log('🌸🌸🌸 / question: ', question)
       const response = await getReply(question)
+      await randomDelay()
       await room.say(response)
+      if (ServiceType === 'doubao') {
+        appendDoubaoMemory({ roomName, senderName: alias, question })
+      }
     }
     // 私人聊天，白名单内的直接发送
     // 私人聊天直接匹配自动回复前缀
     if (isAlias && !room && content.trimStart().startsWith(`${autoReplyPrefix}`)) {
-      const question = content.replace(`${autoReplyPrefix}`, '')
+      const question = content.replaceAll(`${autoReplyPrefix}`, '')
       console.log('🌸🌸🌸 / content: ', question)
       const response = await getReply(question)
+      await randomDelay()
       await contact.say(response)
+      if (ServiceType === 'doubao') {
+        appendDoubaoMemory({ roomName: null, senderName: alias, question })
+      }
     }
   } catch (e) {
     console.error(e)

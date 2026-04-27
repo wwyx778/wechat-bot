@@ -7,6 +7,7 @@ import { getDeepSeekFreeReply } from '../deepseek-free/index.js'
 import { get302AiReply } from '../302ai/index.js'
 import { getDifyReply } from '../dify/index.js'
 import { getOllamaReply } from '../ollama/index.js'
+import { getDoubaoReply } from '../doubao/index.js'
 const env = dotenv.config().parsed // 环境参数
 
 // 控制启动
@@ -20,6 +21,14 @@ async function handleRequest(type) {
         return
       }
       console.log('❌ 请先配置.env文件中的 OPENAI_API_KEY')
+      break
+    case 'doubao':
+      if (env.DOUBAO_API_KEY) {
+        const message = await getDoubaoReply('hello')
+        console.log('🌸🌸🌸 / reply: ', message)
+        return
+      }
+      console.log('❌ 请先配置.env文件中的 DOUBAO_API_KEY')
       break
     case 'Kimi':
       if (env.KIMI_API_KEY) {
@@ -76,6 +85,7 @@ async function handleRequest(type) {
 
 const serveList = [
   { name: 'ChatGPT', value: 'ChatGPT' },
+  { name: 'doubao', value: 'doubao' },
   { name: 'Kimi', value: 'Kimi' },
   { name: 'Xunfei', value: 'Xunfei' },
   { name: 'deepseek-free', value: 'deepseek-free' },
